@@ -1,3 +1,4 @@
+import React from "react";
 import type { ServerMetrics, ConnectionStatus } from "../../types";
 import ProgressBar from "./ProgressBar";
 import { MemoryParser } from "../../services/data/parsers/MemoryParser";
@@ -10,6 +11,8 @@ interface ServerMetricsCardProps {
 	refreshState: "success" | "error" | "idle";
 	connectionStatus: ConnectionStatus;
 	isDeleting?: boolean;
+	metricsPerRow?: number;
+	contentWidth?: number;
 }
 
 const memoryParser = new MemoryParser();
@@ -47,6 +50,8 @@ export default function ServerMetricsCard({
 	refreshState,
 	connectionStatus,
 	isDeleting = false,
+	metricsPerRow = 4,
+	contentWidth = 120,
 }: ServerMetricsCardProps) {
 	const memoryUsagePercent = metrics.memory
 		? memoryParser.calculateUsagePercent(
@@ -81,6 +86,94 @@ export default function ServerMetricsCard({
 	};
 
 	const networkActivity = getNetworkActivity();
+
+	// Calculate responsive column width based on content width and metrics per row
+	const isCompact = metricsPerRow <= 2;
+	const columnWidth = Math.max(
+		20,
+		Math.floor((contentWidth - 4) / metricsPerRow) - 2,
+	);
+	const progressBarWidth = Math.min(16, Math.max(8, columnWidth - 12));
+
+	// Render a single metric section
+	const renderMetricSection = (
+		label: string,
+		subLabel: string,
+		progressPercent: number | null,
+		detail: string,
+		isNetwork: boolean = false,
+	) => (
+		<box flexDirection="column" width={columnWidth}>
+			<box flexDirection="row" alignItems="center" gap={1}>
+				<text fg="#5C5C5C">{label}</text>
+				{!isCompact && (
+					<text fg="#5C5C5C" attributes={2}>
+						{subLabel}
+					</text>
+				)}
+			</box>
+			{isNetwork ? (
+				<box flexDirection="row" alignItems="center" gap={1}>
+					<text fg={networkActivity.color}>
+						{`[${Array.from({ length: 4 }, (_, i) => (i < networkActivity.bars ? "▮" : "▯")).join("")}]`}
+					</text>
+					{!isCompact && (
+						<text fg={networkActivity.color} attributes={2}>
+							{networkActivity.label}
+						</text>
+					)}
+				</box>
+			) : (
+				<ProgressBar percent={progressPercent || 0} width={progressBarWidth} />
+			)}
+			{!isCompact && (
+				<box flexDirection="row" gap={1} marginTop={0}>
+					<text fg="#6B6B6B">{detail}</text>
+				</box>
+			)}
+		</box>
+	);
+
+	// Build metric sections array
+	const metricSections = [
+		renderMetricSection(
+			"CPU",
+			`${metrics.cpu?.cores || "-"} cores`,
+			metrics.cpu?.usage || 0,
+			`Load: ${metrics.cpu?.loadAverage.map((l) => l.toFixed(2)).join(", ") || "-"}`,
+		),
+		renderMetricSection(
+			"Mem",
+			metrics.memory ? memoryParser.formatBytes(metrics.memory.total) : "-",
+			memoryUsagePercent,
+			metrics.memory
+				? `${memoryParser.formatBytes(metrics.memory.used)} / ${memoryParser.formatBytes(metrics.memory.total)}`
+				: "-",
+		),
+		renderMetricSection(
+			"Disk",
+			primaryDisk ? diskParser.formatSize(primaryDisk.total) : "-",
+			primaryDisk?.usagePercent || 0,
+			primaryDisk
+				? `${diskParser.formatSize(primaryDisk.used)} / ${diskParser.formatSize(primaryDisk.total)}`
+				: "-",
+		),
+		renderMetricSection(
+			"Net",
+			metrics.network?.interface || "-",
+			null,
+			metrics.network
+				? `↓${networkParser.formatRate(metrics.network.rxRate)} ↑${networkParser.formatRate(metrics.network.txRate)}`
+				: "-",
+			true,
+		),
+	];
+
+	// Split metrics into rows based on metricsPerRow
+	const rows: React.ReactNode[][] = [];
+	for (let i = 0; i < metricSections.length; i += metricsPerRow) {
+		rows.push(metricSections.slice(i, i + metricsPerRow));
+	}
 
 	return (
 		<box
@@ -121,91 +214,18 @@ export default function ServerMetricsCard({
 				)}
 			</box>
 
-			{/* Metrics row */}
+			{/* Metrics rows */}
 			{metrics.error ? (
 				<box paddingLeft={2}>
 					<text fg="#8B5050">{metrics.error}</text>
 				</box>
 			) : (
-				<box flexDirection="row" gap={4} paddingLeft={2}>
-					{/* CPU */}
-					<box flexDirection="column" width={30}>
-						<box flexDirection="row" alignItems="center" gap={1}>
-							<text fg="#5C5C5C">CPU</text>
-							<text fg="#5C5C5C" attributes={2}>
-								{`${metrics.cpu?.cores || "-"} cores`}
-							</text>
+				<box flexDirection="column" paddingLeft={2} gap={1}>
+					{rows.map((row, rowIndex) => (
+						<box key={rowIndex} flexDirection="row" gap={2}>
+							{row}
 						</box>
-						<ProgressBar percent={metrics.cpu?.usage || 0} width={16} />
-						<box flexDirection="row" gap={1} marginTop={0}>
-							<text fg="#6B6B6B">
-								{`Load: ${metrics.cpu?.loadAverage.map((l) => l.toFixed(2)).join(", ") || "-"}`}
-							</text>
-						</box>
-					</box>
-
-					{/* Memory */}
-					<box flexDirection="column" width={30}>
-						<box flexDirection="row" alignItems="center" gap={1}>
-							<text fg="#5C5C5C">Memory</text>
-							<text fg="#5C5C5C" attributes={2}>
-								{metrics.memory
-									? memoryParser.formatBytes(metrics.memory.total)
-									: "-"}
-							</text>
-						</box>
-						<ProgressBar percent={memoryUsagePercent} width={16} />
-						<box flexDirection="row" gap={1} marginTop={0}>
-							<text fg="#6B6B6B">
-								{metrics.memory
-									? `${memoryParser.formatBytes(metrics.memory.used)} / ${memoryParser.formatBytes(metrics.memory.total)}`
-									: "-"}
-							</text>
-						</box>
-					</box>
-
-					{/* Disk */}
-					<box flexDirection="column" width={30}>
-						<box flexDirection="row" alignItems="center" gap={1}>
-							<text fg="#5C5C5C">Disk</text>
-							<text fg="#5C5C5C" attributes={2}>
-								{primaryDisk ? diskParser.formatSize(primaryDisk.total) : "-"}
-							</text>
-						</box>
-						<ProgressBar percent={primaryDisk?.usagePercent || 0} width={16} />
-						<box flexDirection="row" gap={1} marginTop={0}>
-							<text fg="#6B6B6B">
-								{primaryDisk
-									? `${diskParser.formatSize(primaryDisk.used)} / ${diskParser.formatSize(primaryDisk.total)}`
-									: "-"}
-							</text>
-						</box>
-					</box>
-
-					{/* Network */}
-					<box flexDirection="column" width={30}>
-						<box flexDirection="row" alignItems="center" gap={1}>
-							<text fg="#5C5C5C">Network</text>
-							<text fg="#5C5C5C" attributes={2}>
-								{metrics.network?.interface || "-"}
-							</text>
-						</box>
-						<box flexDirection="row" alignItems="center" gap={1}>
-							<text fg={networkActivity.color}>
-								{`[${Array.from({ length: 4 }, (_, i) => (i < networkActivity.bars ? "▮" : "▯")).join("")}]`}
-							</text>
-							<text fg={networkActivity.color} attributes={2}>
-								{networkActivity.label}
-							</text>
-						</box>
-						<box flexDirection="row" gap={1} marginTop={0}>
-							<text fg="#6B6B6B">
-								{metrics.network
-									? `↓ ${networkParser.formatRate(metrics.network.rxRate)}  ↑ ${networkParser.formatRate(metrics.network.txRate)}`
-									: "-"}
-							</text>
-						</box>
-					</box>
+					))}
 				</box>
 			)}
 		</box>

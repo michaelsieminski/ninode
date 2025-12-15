@@ -4,6 +4,8 @@ import type { NavigationSection } from "../../types";
 interface SidebarProps {
 	currentSection: NavigationSection;
 	onSectionChange: (section: NavigationSection) => void;
+	collapsed?: boolean;
+	width?: number;
 }
 
 const sections: { key: NavigationSection; label: string; shortcut: string }[] =
@@ -16,16 +18,18 @@ const sections: { key: NavigationSection; label: string; shortcut: string }[] =
 export default function Sidebar({
 	currentSection,
 	onSectionChange,
+	collapsed = false,
+	width = 30,
 }: SidebarProps) {
 	return (
 		<box
-			width={40}
+			width={width}
 			flexDirection="column"
 			alignItems="center"
 			backgroundColor="#0E0E0E"
 			padding={1}
 		>
-			<ascii-font font="tiny" text="ninode" marginBottom={2} />
+			{!collapsed && <ascii-font font="tiny" text="ninode" marginBottom={2} />}
 			<box flexDirection="column" width="100%" gap={1}>
 				{sections.map((section) => (
 					<box
@@ -33,11 +37,13 @@ export default function Sidebar({
 						backgroundColor={
 							currentSection === section.key ? "#171717" : "#111111"
 						}
-						padding={1}
+						padding={collapsed ? 0 : 1}
 						onMouseDown={() => onSectionChange(section.key)}
 					>
 						<text fg={currentSection === section.key ? "#FFFFFF" : "#5C5C5C"}>
-							[{section.shortcut}] {section.label}
+							{collapsed
+								? `[${section.shortcut}]`
+								: `[${section.shortcut}] ${section.label}`}
 						</text>
 					</box>
 				))}

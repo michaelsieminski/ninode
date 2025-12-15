@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
+import { useResponsive } from "../../hooks/useResponsive";
 import TextInput from "../common/TextInput";
 import SelectInput from "../common/SelectInput";
 import type { ServerConfig } from "../../types";
@@ -28,6 +29,7 @@ export default function AddServerForm({
 	onSave,
 	onCancel,
 }: AddServerFormProps) {
+	const { breakpoints, contentWidth } = useResponsive();
 	const [name, setName] = useState("");
 	const [host, setHost] = useState("");
 	const [port, setPort] = useState("22");
@@ -38,6 +40,11 @@ export default function AddServerForm({
 	const [focusedField, setFocusedField] = useState<FormField>("name");
 	const [focusedAction, setFocusedAction] = useState<"save" | "cancel">("save");
 	const [error, setError] = useState("");
+
+	// Calculate responsive form width
+	const formWidth = breakpoints.isNarrow
+		? contentWidth - 2
+		: Math.min(60, contentWidth - 4);
 
 	const getFields = (): FormField[] => {
 		const baseFields: FormField[] = [
@@ -137,17 +144,18 @@ export default function AddServerForm({
 	return (
 		<box
 			flexDirection="column"
-			paddingLeft={2}
-			paddingRight={2}
+			paddingLeft={breakpoints.isNarrow ? 1 : 2}
+			paddingRight={breakpoints.isNarrow ? 1 : 2}
 			paddingTop={1}
 			paddingBottom={1}
 			backgroundColor="#0E0E0E"
+			width={formWidth}
 		>
 			<text attributes={1} fg="#FFFFFF">
-				Add Server
+				{breakpoints.isNarrow ? "Add Server" : "Add Server"}
 			</text>
 			<text fg="#5C5C5C" attributes={2}>
-				Use arrows to navigate
+				{breakpoints.isNarrow ? "Use arrows" : "Use arrows to navigate"}
 			</text>
 
 			<box flexDirection="column" gap={1} marginTop={1}>

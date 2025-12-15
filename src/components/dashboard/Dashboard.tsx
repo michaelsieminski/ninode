@@ -4,6 +4,7 @@ import type { ServerConfig, ServerMetrics } from "../../types";
 import type { SSHManager } from "../../services/ssh/SSHManager";
 import { SecureStorage } from "../../services/ssh/SecureStorage";
 import { MetricsCollector } from "../../services/data/MetricsCollector";
+import { useResponsive } from "../../hooks/useResponsive";
 import ServerMetricsCard from "./ServerMetricsCard";
 import AddServerForm from "../servers/AddServerForm";
 import KeyboardHints from "../common/KeyboardHints";
@@ -20,6 +21,7 @@ export default function Dashboard({
 	sshManager,
 	onFormModeChange,
 }: DashboardProps) {
+	const { breakpoints, metricsPerRow, contentWidth } = useResponsive();
 	const [servers, setServers] = useState<ServerConfig[]>([]);
 	const [metricsMap, setMetricsMap] = useState<Map<string, ServerMetrics>>(
 		new Map(),
@@ -337,33 +339,40 @@ export default function Dashboard({
 				justifyContent="space-between"
 				alignItems="center"
 			>
-				<text attributes={1}>Dashboard</text>
+				<text attributes={1}>
+					{breakpoints.isNarrow ? "Dash" : "Dashboard"}
+				</text>
 				<text fg="#3D3D3D" attributes={2}>
 					{`${connectedServers.length}/${servers.length} connected`}
 				</text>
 			</box>
 
 			<box
-				flexDirection="row"
+				flexDirection={breakpoints.isNarrow ? "column" : "row"}
 				marginTop={1}
-				gap={4}
+				gap={breakpoints.isNarrow ? 0 : 4}
 				padding={1}
 				backgroundColor="#0A0A0A"
+				flexWrap="wrap"
 			>
 				<box flexDirection="row" gap={1}>
 					<text fg="#5C5C5C">Servers:</text>
 					<text fg="#8B8B8B">{servers.length}</text>
 				</box>
 				<box flexDirection="row" gap={1}>
-					<text fg="#5C5C5C">Total Cores:</text>
+					<text fg="#5C5C5C">
+						{breakpoints.isNarrow ? "Cores:" : "Total Cores:"}
+					</text>
 					<text fg="#8B8B8B">{totalCores}</text>
 				</box>
 				<box flexDirection="row" gap={1}>
-					<text fg="#5C5C5C">Avg CPU:</text>
+					<text fg="#5C5C5C">{breakpoints.isNarrow ? "CPU:" : "Avg CPU:"}</text>
 					<text fg="#8B8B8B">{avgCpuUsage.toFixed(1)}%</text>
 				</box>
 				<box flexDirection="row" gap={1}>
-					<text fg="#5C5C5C">Avg Memory:</text>
+					<text fg="#5C5C5C">
+						{breakpoints.isNarrow ? "Mem:" : "Avg Memory:"}
+					</text>
 					<text fg="#8B8B8B">{avgMemoryUsage.toFixed(1)}%</text>
 				</box>
 			</box>
@@ -388,6 +397,8 @@ export default function Dashboard({
 							refreshState={refreshStates.get(server.id) || "idle"}
 							connectionStatus={sshManager.getConnectionStatus(server.id)}
 							isDeleting={deleteConfirmId === server.id}
+							metricsPerRow={metricsPerRow}
+							contentWidth={contentWidth}
 						/>
 					);
 				})}
@@ -397,7 +408,7 @@ export default function Dashboard({
 			<box marginTop={2}>
 				<KeyboardHints
 					hints={[
-						{ key: "a", label: "add server" },
+						{ key: "a", label: breakpoints.isNarrow ? "add" : "add server" },
 						{ key: "d", label: "delete" },
 					]}
 				/>

@@ -2,6 +2,7 @@ import React from "react";
 import { useKeyboard } from "@opentui/react";
 import type { NavigationSection } from "../../types";
 import type { SSHManager } from "../../services/ssh/SSHManager";
+import { useResponsive } from "../../hooks/useResponsive";
 import Sidebar from "./Sidebar";
 
 interface AppLayoutProps {
@@ -18,6 +19,8 @@ export default function AppLayout({
 	onSectionChange,
 	disableKeyboardNavigation = false,
 }: AppLayoutProps) {
+	const { breakpoints, sidebarWidth } = useResponsive();
+
 	useKeyboard((key) => {
 		if (disableKeyboardNavigation) return;
 
@@ -32,11 +35,19 @@ export default function AppLayout({
 
 	return (
 		<box flexDirection="row" height="100%">
-			<Sidebar
-				currentSection={currentSection}
-				onSectionChange={onSectionChange}
-			/>
-			<box flexGrow={1} paddingLeft={2} paddingRight={2}>
+			{!breakpoints.isNarrow && (
+				<Sidebar
+					currentSection={currentSection}
+					onSectionChange={onSectionChange}
+					collapsed={false}
+					width={sidebarWidth}
+				/>
+			)}
+			<box
+				flexGrow={1}
+				paddingLeft={breakpoints.isNarrow ? 1 : 2}
+				paddingRight={breakpoints.isNarrow ? 1 : 2}
+			>
 				{children}
 			</box>
 		</box>
