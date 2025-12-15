@@ -135,13 +135,19 @@ export default function AddServerForm({
 	});
 
 	return (
-		<box flexDirection="column" padding={1} backgroundColor="#0E0E0E">
+		<box
+			flexDirection="column"
+			paddingLeft={2}
+			paddingRight={2}
+			paddingTop={1}
+			paddingBottom={1}
+			backgroundColor="#0E0E0E"
+		>
 			<text attributes={1} fg="#FFFFFF">
 				Add Server
 			</text>
 			<text fg="#5C5C5C" attributes={2}>
-				Tab/Shift+Tab or arrows to navigate, type to enter, Ctrl+U to clear, Esc
-				to cancel
+				Use arrows to navigate
 			</text>
 
 			<box flexDirection="column" gap={1} marginTop={1}>

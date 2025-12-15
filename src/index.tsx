@@ -3,7 +3,6 @@ import { createRoot } from "@opentui/react";
 import { useState, useRef } from "react";
 import type { NavigationSection } from "./types";
 import AppLayout from "./components/layout/AppLayout";
-import ServersPage from "./components/servers/ServersPage";
 import Dashboard from "./components/dashboard/Dashboard";
 import { SSHManager } from "./services/ssh/SSHManager";
 
@@ -17,10 +16,8 @@ function App() {
 	const renderContent = () => {
 		switch (currentSection) {
 			case "dashboard":
-				return <Dashboard sshManager={sshManager} />;
-			case "servers":
 				return (
-					<ServersPage
+					<Dashboard
 						sshManager={sshManager}
 						onFormModeChange={setIsInFormMode}
 					/>

@@ -5,15 +5,21 @@ import type { SSHManager } from "../../services/ssh/SSHManager";
 import { SecureStorage } from "../../services/ssh/SecureStorage";
 import { MetricsCollector } from "../../services/data/MetricsCollector";
 import ServerMetricsCard from "./ServerMetricsCard";
+import AddServerForm from "../servers/AddServerForm";
+import KeyboardHints from "../common/KeyboardHints";
 
 interface DashboardProps {
 	sshManager: SSHManager;
+	onFormModeChange?: (isInForm: boolean) => void;
 }
 
 const secureStorage = new SecureStorage();
 const metricsCollector = new MetricsCollector();
 
-export default function Dashboard({ sshManager }: DashboardProps) {
+export default function Dashboard({
+	sshManager,
+	onFormModeChange,
+}: DashboardProps) {
 	const [servers, setServers] = useState<ServerConfig[]>([]);
 	const [metricsMap, setMetricsMap] = useState<Map<string, ServerMetrics>>(
 		new Map(),
@@ -23,6 +29,8 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 	const [refreshStates, setRefreshStates] = useState<
 		Map<string, "success" | "error" | "idle">
 	>(new Map());
+	const [showAddModal, setShowAddModal] = useState(false);
+	const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 	const mountedRef = useRef(true);
 	const isCollectingRef = useRef(false);
 	const refreshTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -197,12 +205,73 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 		}
 	};
 
+	// Open/close modal handlers
+	const openAddModal = () => {
+		setShowAddModal(true);
+		onFormModeChange?.(true);
+	};
+
+	const closeAddModal = () => {
+		setShowAddModal(false);
+		onFormModeChange?.(false);
+	};
+
+	// Add server handler
+	const handleAddServer = async (config: ServerConfig) => {
+		await secureStorage.saveServerConfig(config);
+		await loadServers();
+		closeAddModal();
+		// Auto-connect to the new server
+		try {
+			await sshManager.connect(config);
+		} catch {
+			// Connection error will be shown in the metrics card
+		}
+	};
+
+	// Delete server handler
+	const handleDeleteServer = async (serverId: string) => {
+		// Disconnect first
+		sshManager.disconnect(serverId);
+		// Remove from storage
+		await secureStorage.deleteServerConfig(serverId);
+		// Remove from metrics map
+		setMetricsMap((prev) => {
+			const newMap = new Map(prev);
+			newMap.delete(serverId);
+			return newMap;
+		});
+		// Reload servers
+		await loadServers();
+		// Reset delete confirmation
+		setDeleteConfirmId(null);
+		// Adjust selected index if needed
+		setSelectedIndex((prev) => Math.max(0, Math.min(prev, servers.length - 2)));
+	};
+
 	// Keyboard navigation
 	useKeyboard((key) => {
+		// Don't handle keys when modal is open
+		if (showAddModal) return;
+
 		if (key.name === "up") {
 			setSelectedIndex((prev) => Math.max(0, prev - 1));
+			setDeleteConfirmId(null);
 		} else if (key.name === "down") {
 			setSelectedIndex((prev) => Math.min(servers.length - 1, prev + 1));
+			setDeleteConfirmId(null);
+		} else if (key.name === "a") {
+			openAddModal();
+		} else if (key.name === "d" || key.name === "backspace") {
+			if (servers.length > 0 && servers[selectedIndex]) {
+				setDeleteConfirmId(servers[selectedIndex].id);
+			}
+		} else if (deleteConfirmId) {
+			if (key.name === "y" || key.name === "return") {
+				handleDeleteServer(deleteConfirmId);
+			} else if (key.name === "n" || key.name === "escape") {
+				setDeleteConfirmId(null);
+			}
 		}
 	});
 
@@ -227,6 +296,15 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 				return sum + (m.memory.used / m.memory.total) * 100;
 			}, 0) / Math.max(1, connectedServers.length) || 0;
 
+	// Show add server form (replaces content)
+	if (showAddModal) {
+		return (
+			<box flexDirection="column">
+				<AddServerForm onSave={handleAddServer} onCancel={closeAddModal} />
+			</box>
+		);
+	}
+
 	if (isLoading && servers.length === 0) {
 		return (
 			<box flexDirection="column">
@@ -246,9 +324,7 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 					<text fg="#5C5C5C">No servers configured</text>
 				</box>
 				<box marginTop={1}>
-					<text fg="#3D3D3D" attributes={2}>
-						Go to Servers [2] to add a server
-					</text>
+					<KeyboardHints hints={[{ key: "a", label: "add server" }]} />
 				</box>
 			</box>
 		);
@@ -302,7 +378,6 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 						disks: [],
 						network: null,
 						lastUpdated: Date.now(),
-						error: "Loading...",
 					};
 
 					return (
@@ -311,9 +386,21 @@ export default function Dashboard({ sshManager }: DashboardProps) {
 							metrics={metrics}
 							isSelected={index === selectedIndex}
 							refreshState={refreshStates.get(server.id) || "idle"}
+							connectionStatus={sshManager.getConnectionStatus(server.id)}
+							isDeleting={deleteConfirmId === server.id}
 						/>
 					);
 				})}
+			</box>
+
+			{/* Keyboard hints */}
+			<box marginTop={2}>
+				<KeyboardHints
+					hints={[
+						{ key: "a", label: "add server" },
+						{ key: "d", label: "delete" },
+					]}
+				/>
 			</box>
 		</box>
 	);

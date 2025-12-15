@@ -1,4 +1,4 @@
-import type { ServerMetrics } from "../../types";
+import type { ServerMetrics, ConnectionStatus } from "../../types";
 import ProgressBar from "./ProgressBar";
 import { MemoryParser } from "../../services/data/parsers/MemoryParser";
 import { DiskParser } from "../../services/data/parsers/DiskParser";
@@ -8,16 +8,45 @@ interface ServerMetricsCardProps {
 	metrics: ServerMetrics;
 	isSelected: boolean;
 	refreshState: "success" | "error" | "idle";
+	connectionStatus: ConnectionStatus;
+	isDeleting?: boolean;
 }
 
 const memoryParser = new MemoryParser();
 const diskParser = new DiskParser();
 const networkParser = new NetworkParser();
 
+const getStatusColor = (status: ConnectionStatus) => {
+	switch (status) {
+		case "connected":
+			return "#66AA66";
+		case "connecting":
+			return "#CCAA66";
+		case "error":
+		case "disconnected":
+			return "#CC6666";
+	}
+};
+
+const getStatusLabel = (status: ConnectionStatus) => {
+	switch (status) {
+		case "connected":
+			return "CONNECTED";
+		case "connecting":
+			return "CONNECTING";
+		case "error":
+			return "ERROR";
+		case "disconnected":
+			return "DISCONNECTED";
+	}
+};
+
 export default function ServerMetricsCard({
 	metrics,
 	isSelected,
 	refreshState,
+	connectionStatus,
+	isDeleting = false,
 }: ServerMetricsCardProps) {
 	const memoryUsagePercent = metrics.memory
 		? memoryParser.calculateUsagePercent(
@@ -79,15 +108,17 @@ export default function ServerMetricsCard({
 					>
 						●
 					</text>
+					<text fg={getStatusColor(connectionStatus)} attributes={2}>
+						{getStatusLabel(connectionStatus)}
+					</text>
 				</box>
-				<text
-					fg={metrics.error ? "#6B3030" : "#3D3D3D"}
-					attributes={metrics.error ? 0 : 2}
-				>
-					{metrics.error
-						? "ERROR"
-						: new Date(metrics.lastUpdated).toLocaleTimeString()}
-				</text>
+				{isDeleting ? (
+					<text fg="#CC6666">Delete? [y]es [n]o</text>
+				) : (
+					<text fg="#3D3D3D" attributes={2}>
+						{new Date(metrics.lastUpdated).toLocaleTimeString()}
+					</text>
+				)}
 			</box>
 
 			{/* Metrics row */}

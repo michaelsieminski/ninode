@@ -31,7 +31,7 @@ export interface CommandResult {
 	exitCode: number;
 }
 
-export type NavigationSection = "dashboard" | "servers" | "processes" | "logs";
+export type NavigationSection = "dashboard" | "processes" | "logs";
 
 // Metrics Types
 export interface CPUMetrics {

@@ -9,9 +9,8 @@ interface SidebarProps {
 const sections: { key: NavigationSection; label: string; shortcut: string }[] =
 	[
 		{ key: "dashboard", label: "Dashboard", shortcut: "1" },
-		{ key: "servers", label: "Servers", shortcut: "2" },
-		{ key: "processes", label: "Processes", shortcut: "3" },
-		{ key: "logs", label: "Logs", shortcut: "4" },
+		{ key: "processes", label: "Processes", shortcut: "2" },
+		{ key: "logs", label: "Logs", shortcut: "3" },
 	];
 
 export default function Sidebar({

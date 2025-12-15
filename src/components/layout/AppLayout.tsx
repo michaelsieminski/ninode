@@ -24,10 +24,8 @@ export default function AppLayout({
 		if (key.name === "1") {
 			onSectionChange("dashboard");
 		} else if (key.name === "2") {
-			onSectionChange("servers");
-		} else if (key.name === "3") {
 			onSectionChange("processes");
-		} else if (key.name === "4") {
+		} else if (key.name === "3") {
 			onSectionChange("logs");
 		}
 	});
@@ -38,7 +36,7 @@ export default function AppLayout({
 				currentSection={currentSection}
 				onSectionChange={onSectionChange}
 			/>
-			<box flexGrow={1} paddingTop={1} paddingLeft={2} paddingRight={2}>
+			<box flexGrow={1} paddingLeft={2} paddingRight={2}>
 				{children}
 			</box>
 		</box>
