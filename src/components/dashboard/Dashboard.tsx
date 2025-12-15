@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
 import type { ServerConfig, ServerMetrics } from "../../types";
 import type { SSHManager } from "../../services/ssh/SSHManager";
-import { SecureStorage } from "../../services/ssh/SecureStorage";
+import { DatabaseService } from "../../services/storage/DatabaseService";
 import { MetricsCollector } from "../../services/data/MetricsCollector";
 import { useResponsive } from "../../hooks/useResponsive";
 import ServerMetricsCard from "./ServerMetricsCard";
@@ -12,14 +12,15 @@ import KeyboardHints from "../common/KeyboardHints";
 interface DashboardProps {
 	sshManager: SSHManager;
 	onFormModeChange?: (isInForm: boolean) => void;
+	onServerSelect?: (serverId: string, serverName: string) => void;
 }
 
-const secureStorage = new SecureStorage();
 const metricsCollector = new MetricsCollector();
 
 export default function Dashboard({
 	sshManager,
 	onFormModeChange,
+	onServerSelect,
 }: DashboardProps) {
 	const { breakpoints, metricsPerRow, contentWidth } = useResponsive();
 	const [servers, setServers] = useState<ServerConfig[]>([]);
@@ -111,7 +112,7 @@ export default function Dashboard({
 	}, [servers, sshManager]);
 
 	const loadServers = async () => {
-		const configs = await secureStorage.getAllServerConfigs();
+		const configs = await DatabaseService.getAllServers();
 		if (mountedRef.current) {
 			setServers(configs);
 		}
@@ -123,8 +124,14 @@ export default function Dashboard({
 		isError: boolean = false,
 	) => {
 		if (!mountedRef.current) return;
-		// Use requestAnimationFrame to batch updates and prevent yoga-layout conflicts
-		requestAnimationFrame(() => {
+
+		// Save metrics to database (only if not an error)
+		if (!isError && !metrics.error) {
+			DatabaseService.saveMetrics(metrics);
+		}
+
+		// Use setTimeout to batch updates and prevent yoga-layout conflicts
+		setTimeout(() => {
 			if (!mountedRef.current) return;
 			setMetricsMap((prev) => {
 				const newMap = new Map(prev);
@@ -220,7 +227,7 @@ export default function Dashboard({
 
 	// Add server handler
 	const handleAddServer = async (config: ServerConfig) => {
-		await secureStorage.saveServerConfig(config);
+		await DatabaseService.saveServer(config);
 		await loadServers();
 		closeAddModal();
 		// Auto-connect to the new server
@@ -236,7 +243,7 @@ export default function Dashboard({
 		// Disconnect first
 		sshManager.disconnect(serverId);
 		// Remove from storage
-		await secureStorage.deleteServerConfig(serverId);
+		await DatabaseService.deleteServer(serverId);
 		// Remove from metrics map
 		setMetricsMap((prev) => {
 			const newMap = new Map(prev);
@@ -262,6 +269,14 @@ export default function Dashboard({
 		} else if (key.name === "down") {
 			setSelectedIndex((prev) => Math.min(servers.length - 1, prev + 1));
 			setDeleteConfirmId(null);
+		} else if (key.name === "return") {
+			// Handle delete confirmation first
+			if (deleteConfirmId) {
+				handleDeleteServer(deleteConfirmId);
+			} else if (servers[selectedIndex] && onServerSelect) {
+				// Navigate to server detail
+				onServerSelect(servers[selectedIndex].id, servers[selectedIndex].name);
+			}
 		} else if (key.name === "a") {
 			openAddModal();
 		} else if (key.name === "d" || key.name === "backspace") {
@@ -269,7 +284,7 @@ export default function Dashboard({
 				setDeleteConfirmId(servers[selectedIndex].id);
 			}
 		} else if (deleteConfirmId) {
-			if (key.name === "y" || key.name === "return") {
+			if (key.name === "y") {
 				handleDeleteServer(deleteConfirmId);
 			} else if (key.name === "n" || key.name === "escape") {
 				setDeleteConfirmId(null);
@@ -408,6 +423,10 @@ export default function Dashboard({
 			<box marginTop={2}>
 				<KeyboardHints
 					hints={[
+						{
+							key: "ENTER",
+							label: breakpoints.isNarrow ? "open" : "open details",
+						},
 						{ key: "a", label: breakpoints.isNarrow ? "add" : "add server" },
 						{ key: "d", label: "delete" },
 					]}

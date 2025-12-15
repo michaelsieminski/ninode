@@ -26,10 +26,6 @@ export default function AppLayout({
 
 		if (key.name === "1") {
 			onSectionChange("dashboard");
-		} else if (key.name === "2") {
-			onSectionChange("processes");
-		} else if (key.name === "3") {
-			onSectionChange("logs");
 		}
 	});
 
