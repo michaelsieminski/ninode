@@ -14,7 +14,26 @@ import { NetworkParser } from "./parsers/NetworkParser";
 interface MetricsCache {
 	metrics: ServerMetrics;
 	timestamp: number;
+	previousCpuStats?: {
+		user: number;
+		nice: number;
+		system: number;
+		idle: number;
+		total: number;
+	};
 }
+
+/**
+ * Section markers for the combined metrics command output
+ */
+const SECTION_MARKERS = {
+	CPU_STAT: "===CPU_STAT===",
+	LOADAVG: "===LOADAVG===",
+	NPROC: "===NPROC===",
+	MEMINFO: "===MEMINFO===",
+	DISKSTATS: "===DISKSTATS===",
+	NETDEV: "===NETDEV===",
+} as const;
 
 export class MetricsCollector {
 	private cpuParser = new CPUParser();
@@ -24,8 +43,56 @@ export class MetricsCollector {
 	private cache = new Map<string, MetricsCache>();
 	private cacheTTL = 3000; // 3 seconds cache
 
+	private buildCombinedCommand(): string {
+		return [
+			`echo "${SECTION_MARKERS.CPU_STAT}"`,
+			"cat /proc/stat | head -1", // Only first line (aggregate CPU)
+			`echo "${SECTION_MARKERS.LOADAVG}"`,
+			"cat /proc/loadavg",
+			`echo "${SECTION_MARKERS.NPROC}"`,
+			"nproc",
+			`echo "${SECTION_MARKERS.MEMINFO}"`,
+			"cat /proc/meminfo",
+			`echo "${SECTION_MARKERS.DISKSTATS}"`,
+			"df -h",
+			`echo "${SECTION_MARKERS.NETDEV}"`,
+			"cat /proc/net/dev",
+		].join(" && ");
+	}
+
 	/**
-	 * Collect all metrics for a server
+	 * Parse the combined command output into sections
+	 */
+	private parseSections(output: string): Map<string, string> {
+		const sections = new Map<string, string>();
+		const markers = Object.values(SECTION_MARKERS);
+
+		let currentSection = "";
+		let currentContent: string[] = [];
+
+		for (const line of output.split("\n")) {
+			if (markers.includes(line.trim() as (typeof markers)[number])) {
+				// Save previous section
+				if (currentSection) {
+					sections.set(currentSection, currentContent.join("\n"));
+				}
+				currentSection = line.trim();
+				currentContent = [];
+			} else {
+				currentContent.push(line);
+			}
+		}
+
+		// Save last section
+		if (currentSection) {
+			sections.set(currentSection, currentContent.join("\n"));
+		}
+
+		return sections;
+	}
+
+	/**
+	 * Collect all metrics for a server using a single optimized command
 	 */
 	async collectAllMetrics(
 		serverId: string,
@@ -39,13 +106,17 @@ export class MetricsCollector {
 		}
 
 		try {
-			// Collect all metrics in parallel
-			const [cpu, memory, disks, network] = await Promise.all([
-				this.collectCPUMetrics(connection),
-				this.collectMemoryMetrics(connection),
-				this.collectDiskMetrics(connection),
-				this.collectNetworkMetrics(serverId, connection),
-			]);
+			// Execute single combined command
+			const result = await connection.executeCommand(
+				this.buildCombinedCommand(),
+			);
+			const sections = this.parseSections(result.stdout);
+
+			// Parse all metrics from the combined output
+			const cpu = this.parseCPUFromSections(serverId, sections);
+			const memory = this.parseMemoryFromSections(sections);
+			const disks = this.parseDisksFromSections(sections);
+			const network = this.parseNetworkFromSections(serverId, sections);
 
 			const metrics: ServerMetrics = {
 				serverId,
@@ -57,8 +128,15 @@ export class MetricsCollector {
 				lastUpdated: Date.now(),
 			};
 
-			// Update cache
-			this.cache.set(serverId, { metrics, timestamp: Date.now() });
+			// Update cache with CPU stats for delta calculation
+			const cpuStatSection = sections.get(SECTION_MARKERS.CPU_STAT) || "";
+			const cpuStats = this.cpuParser.parseProcStat(cpuStatSection);
+
+			this.cache.set(serverId, {
+				metrics,
+				timestamp: Date.now(),
+				previousCpuStats: cpuStats,
+			});
 
 			return metrics;
 		} catch (error) {
@@ -87,55 +165,58 @@ export class MetricsCollector {
 	}
 
 	/**
-	 * Collect CPU metrics from the server
+	 * Parse CPU metrics from combined output sections
 	 */
-	async collectCPUMetrics(connection: SSHConnection): Promise<CPUMetrics> {
-		// Use multiple commands for reliability
-		const [topResult, uptimeResult, nprocResult] = await Promise.all([
-			connection.executeCommand("top -bn1 | head -5"),
-			connection.executeCommand("uptime"),
-			connection.executeCommand("nproc"),
-		]);
-
-		const metrics = this.cpuParser.parseCPUUsage(
-			topResult.stdout,
-			uptimeResult.stdout,
-		);
-
-		// Override cores if nproc succeeded
-		if (nprocResult.exitCode === 0) {
-			metrics.cores = this.cpuParser.parseCoresFromNproc(nprocResult.stdout);
-		}
-
-		return metrics;
-	}
-
-	/**
-	 * Collect memory metrics from the server
-	 */
-	async collectMemoryMetrics(
-		connection: SSHConnection,
-	): Promise<MemoryMetrics> {
-		const result = await connection.executeCommand("free -m");
-		return this.memoryParser.parseMemoryUsage(result.stdout);
-	}
-
-	/**
-	 * Collect disk metrics from the server
-	 */
-	async collectDiskMetrics(connection: SSHConnection): Promise<DiskMetrics[]> {
-		const result = await connection.executeCommand("df -h");
-		return this.diskParser.parseDiskUsage(result.stdout);
-	}
-
-	/**
-	 * Collect network metrics from the server
-	 */
-	async collectNetworkMetrics(
+	private parseCPUFromSections(
 		serverId: string,
-		connection: SSHConnection,
-	): Promise<NetworkMetrics | null> {
-		const result = await connection.executeCommand("cat /proc/net/dev");
+		sections: Map<string, string>,
+	): CPUMetrics {
+		const cpuStatOutput = sections.get(SECTION_MARKERS.CPU_STAT) || "";
+		const loadavgOutput = sections.get(SECTION_MARKERS.LOADAVG) || "";
+		const nprocOutput = sections.get(SECTION_MARKERS.NPROC) || "";
+
+		// Get previous CPU stats for delta calculation
+		const cached = this.cache.get(serverId);
+		const previousCpuStats = cached?.previousCpuStats;
+		const timeDelta = cached
+			? (Date.now() - cached.timestamp) / 1000
+			: undefined;
+
+		return this.cpuParser.parseCPUMetrics(
+			cpuStatOutput,
+			loadavgOutput,
+			nprocOutput,
+			previousCpuStats,
+			timeDelta,
+		);
+	}
+
+	/**
+	 * Parse memory metrics from combined output sections
+	 */
+	private parseMemoryFromSections(
+		sections: Map<string, string>,
+	): MemoryMetrics {
+		const meminfoOutput = sections.get(SECTION_MARKERS.MEMINFO) || "";
+		return this.memoryParser.parseProcMeminfo(meminfoOutput);
+	}
+
+	/**
+	 * Parse disk metrics from combined output sections
+	 */
+	private parseDisksFromSections(sections: Map<string, string>): DiskMetrics[] {
+		const dfOutput = sections.get(SECTION_MARKERS.DISKSTATS) || "";
+		return this.diskParser.parseDiskUsage(dfOutput);
+	}
+
+	/**
+	 * Parse network metrics from combined output sections
+	 */
+	private parseNetworkFromSections(
+		serverId: string,
+		sections: Map<string, string>,
+	): NetworkMetrics | null {
+		const netdevOutput = sections.get(SECTION_MARKERS.NETDEV) || "";
 
 		// Get previous metrics from cache for rate calculation
 		const cached = this.cache.get(serverId);
@@ -145,7 +226,7 @@ export class MetricsCollector {
 			: undefined;
 
 		return this.networkParser.parseNetworkUsage(
-			result.stdout,
+			netdevOutput,
 			previousNetwork,
 			timeDelta,
 		);
