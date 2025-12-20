@@ -7,6 +7,17 @@ import Dashboard from "./components/dashboard/Dashboard";
 import ServerDetailView from "./components/detail/ServerDetailView";
 import { SSHManager } from "./services/ssh/SSHManager";
 import { DatabaseService } from "./services/storage/DatabaseService";
+import { handleDaemonCommand, ensureDaemonRunning } from "./cli/daemon";
+
+// Check for daemon commands before starting TUI
+const args = process.argv.slice(2);
+if (args[0] === "daemon") {
+	const exitCode = await handleDaemonCommand(args.slice(1));
+	process.exit(exitCode);
+}
+
+// Auto-start daemon if not already running
+await ensureDaemonRunning();
 
 function App() {
 	const [currentSection, setCurrentSection] =

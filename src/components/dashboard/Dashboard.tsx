@@ -37,6 +37,7 @@ export default function Dashboard({
 	const mountedRef = useRef(true);
 	const isCollectingRef = useRef(false);
 	const refreshTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+	const updateTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
 	// Load servers on mount
 	useEffect(() => {
@@ -46,6 +47,8 @@ export default function Dashboard({
 			mountedRef.current = false;
 			refreshTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
 			refreshTimeoutsRef.current.clear();
+			updateTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+			updateTimeoutsRef.current.clear();
 		};
 	}, []);
 
@@ -131,8 +134,10 @@ export default function Dashboard({
 		}
 
 		// Use setTimeout to batch updates and prevent yoga-layout conflicts
-		setTimeout(() => {
+		const updateTimeout = setTimeout(() => {
+			updateTimeoutsRef.current.delete(updateTimeout);
 			if (!mountedRef.current) return;
+
 			setMetricsMap((prev) => {
 				const newMap = new Map(prev);
 				newMap.set(serverId, metrics);
@@ -154,7 +159,8 @@ export default function Dashboard({
 			}
 
 			// Reset to idle after 200ms
-			const timeout = setTimeout(() => {
+			const idleTimeout = setTimeout(() => {
+				refreshTimeoutsRef.current.delete(serverId);
 				if (mountedRef.current) {
 					setRefreshStates((prev) => {
 						const newMap = new Map(prev);
@@ -164,8 +170,10 @@ export default function Dashboard({
 				}
 			}, 200);
 
-			refreshTimeoutsRef.current.set(serverId, timeout);
+			refreshTimeoutsRef.current.set(serverId, idleTimeout);
 		});
+
+		updateTimeoutsRef.current.add(updateTimeout);
 	};
 
 	const collectMetricsForServer = async (server: ServerConfig) => {
