@@ -53,8 +53,9 @@ export default function TextInput({
 	useEffect(() => {
 		if (!focused || !renderer) return;
 
-		const handlePaste = (event: any) => {
-			const text = event.text || event;
+		const decoder = new TextDecoder();
+		const handlePaste = (event: { bytes: Uint8Array }) => {
+			const text = decoder.decode(event.bytes).replace(/[\r\n]+/g, "");
 			onChange(value + text);
 		};
 

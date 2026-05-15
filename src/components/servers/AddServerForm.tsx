@@ -1,12 +1,28 @@
 import { useState } from "react";
+import { existsSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 import { useKeyboard } from "@opentui/react";
 import { useResponsive } from "../../hooks/useResponsive";
 import TextInput from "../common/TextInput";
 import SelectInput from "../common/SelectInput";
 import type { ServerConfig } from "../../types";
 
+const DEFAULT_KEY_NAMES = ["id_ed25519", "id_ecdsa", "id_rsa"];
+
+function getDefaultKeyPath(): string {
+	const sshDir = join(homedir(), ".ssh");
+	for (const name of DEFAULT_KEY_NAMES) {
+		const path = join(sshDir, name);
+		if (existsSync(path)) return path;
+	}
+	return join(sshDir, "id_ed25519");
+}
+
 interface AddServerFormProps {
-	onSave: (config: ServerConfig) => void;
+	onSave: (
+		config: ServerConfig,
+	) => Promise<{ success: true } | { success: false; error: string }>;
 	onCancel: () => void;
 }
 
@@ -33,13 +49,14 @@ export default function AddServerForm({
 	const [name, setName] = useState("");
 	const [host, setHost] = useState("");
 	const [port, setPort] = useState("22");
-	const [username, setUsername] = useState("");
+	const [username, setUsername] = useState("root");
 	const [authMethod, setAuthMethod] = useState<"password" | "key">("password");
 	const [password, setPassword] = useState("");
-	const [keyPath, setKeyPath] = useState("");
+	const [keyPath, setKeyPath] = useState(getDefaultKeyPath);
 	const [focusedField, setFocusedField] = useState<FormField>("name");
 	const [focusedAction, setFocusedAction] = useState<"save" | "cancel">("save");
 	const [error, setError] = useState("");
+	const [isConnecting, setIsConnecting] = useState(false);
 
 	// Calculate responsive form width
 	const formWidth = breakpoints.isNarrow
@@ -63,7 +80,9 @@ export default function AddServerForm({
 
 	const fields = getFields();
 
-	const handleSave = () => {
+	const handleSave = async () => {
+		if (isConnecting) return;
+
 		if (!name.trim()) {
 			setError("Name is required");
 			return;
@@ -103,10 +122,18 @@ export default function AddServerForm({
 				: { keyPath: keyPath.trim() }),
 		};
 
-		onSave(config);
+		setError("");
+		setIsConnecting(true);
+		const result = await onSave(config);
+		setIsConnecting(false);
+		if (!result.success) {
+			setError(result.error);
+		}
 	};
 
 	useKeyboard((key) => {
+		if (isConnecting) return;
+
 		if (key.name === "escape") {
 			onCancel();
 			return;
@@ -242,6 +269,11 @@ export default function AddServerForm({
 					>
 						[Cancel]
 					</text>
+					{isConnecting && (
+						<text fg="#CCAA66" attributes={2}>
+							Connecting...
+						</text>
+					)}
 				</box>
 
 				{error && (

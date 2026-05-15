@@ -1,5 +1,14 @@
 import { Client } from "ssh2";
+import { readFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 import type { ServerConfig, CommandResult } from "../../types";
+
+function resolveKeyPath(path: string): string {
+	if (path === "~") return homedir();
+	if (path.startsWith("~/")) return join(homedir(), path.slice(2));
+	return path;
+}
 
 export class SSHConnection {
 	private client: Client;
@@ -20,8 +29,7 @@ export class SSHConnection {
 			if (config.authMethod === "password" && config.password) {
 				connectConfig.password = config.password;
 			} else if (config.authMethod === "key" && config.keyPath) {
-				// For key auth, password might be passphrase, but for now assume no passphrase
-				connectConfig.privateKey = require("fs").readFileSync(config.keyPath);
+				connectConfig.privateKey = readFileSync(resolveKeyPath(config.keyPath));
 			}
 
 			this.client.on("ready", () => {

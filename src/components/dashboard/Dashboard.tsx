@@ -233,17 +233,23 @@ export default function Dashboard({
 		onFormModeChange?.(false);
 	};
 
-	// Add server handler
-	const handleAddServer = async (config: ServerConfig) => {
+	// Add server handler — only persist if the SSH connection actually works
+	const handleAddServer = async (
+		config: ServerConfig,
+	): Promise<{ success: true } | { success: false; error: string }> => {
+		try {
+			await sshManager.connect(config);
+		} catch (error) {
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : "Connection failed",
+			};
+		}
+
 		await DatabaseService.saveServer(config);
 		await loadServers();
 		closeAddModal();
-		// Auto-connect to the new server
-		try {
-			await sshManager.connect(config);
-		} catch {
-			// Connection error will be shown in the metrics card
-		}
+		return { success: true };
 	};
 
 	// Delete server handler
