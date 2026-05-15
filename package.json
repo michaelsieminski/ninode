@@ -1,10 +1,20 @@
 {
 	"name": "ninode",
+	"version": "0.1.0",
+	"description": "Terminal-based server monitoring built with React 19 and OpenTUI",
 	"module": "src/index.tsx",
 	"type": "module",
 	"private": true,
+	"bin": {
+		"ninode": "dist/ninode"
+	},
 	"scripts": {
 		"dev": "bun run --watch src/index.tsx",
+		"build": "bun build --compile --minify --sourcemap src/index.tsx --outfile dist/ninode",
+		"build:darwin-arm64": "bun build --compile --minify --sourcemap --target=bun-darwin-arm64 src/index.tsx --outfile dist/ninode-darwin-arm64",
+		"build:darwin-x64": "bun build --compile --minify --sourcemap --target=bun-darwin-x64 src/index.tsx --outfile dist/ninode-darwin-x64",
+		"build:linux-x64": "bun build --compile --minify --sourcemap --target=bun-linux-x64 src/index.tsx --outfile dist/ninode-linux-x64",
+		"build:linux-arm64": "bun build --compile --minify --sourcemap --target=bun-linux-arm64 src/index.tsx --outfile dist/ninode-linux-arm64",
 		"format": "biome format --write"
 	},
 	"dependencies": {

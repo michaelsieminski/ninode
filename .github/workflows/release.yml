@@ -1,0 +1,219 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-14
+            script: build:darwin-arm64
+            artifact: dist/ninode-darwin-arm64
+          - target: darwin-x64
+            runner: macos-13
+            script: build:darwin-x64
+            artifact: dist/ninode-darwin-x64
+          - target: linux-x64
+            runner: ubuntu-latest
+            script: build:linux-x64
+            artifact: dist/ninode-linux-x64
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            script: build:linux-arm64
+            artifact: dist/ninode-linux-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run ${{ matrix.script }}
+
+      - name: Smoke test (host-arch only)
+        if: matrix.target == 'darwin-arm64' || matrix.target == 'linux-x64' || matrix.target == 'linux-arm64'
+        run: ${{ matrix.artifact }} --version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ninode-${{ matrix.target }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find artifacts -type f -name 'ninode-*' -exec cp {} release/ \;
+          ls -la release/
+
+      - name: Compute checksums
+        working-directory: release
+        run: shasum -a 256 ninode-* > SHA256SUMS
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          files: |
+            release/ninode-*
+            release/SHA256SUMS
+
+  homebrew:
+    name: bump homebrew formula
+    needs: release
+    runs-on: ubuntu-latest
+    # Requires HOMEBREW_TAP_TOKEN secret: a PAT with `contents: write`
+    # on michaelsieminski/homebrew-tap. Skipped automatically if absent.
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    steps:
+      - name: Check for tap token
+        id: gate
+        run: |
+          if [ -z "${{ secrets.HOMEBREW_TAP_TOKEN }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "HOMEBREW_TAP_TOKEN not set; skipping formula bump"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve tag
+        if: steps.gate.outputs.skip == 'false'
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tap
+        if: steps.gate.outputs.skip == 'false'
+        uses: actions/checkout@v4
+        with:
+          repository: michaelsieminski/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Download release binaries
+        if: steps.gate.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          mkdir bins && cd bins
+          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            gh release download "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern "ninode-${target}" \
+              --output "ninode-${target}"
+          done
+          ls -la
+
+      - name: Render formula
+        if: steps.gate.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          VERSION="${TAG#v}"
+          SHA_DARWIN_ARM64=$(shasum -a 256 bins/ninode-darwin-arm64 | awk '{print $1}')
+          SHA_DARWIN_X64=$(shasum -a 256 bins/ninode-darwin-x64    | awk '{print $1}')
+          SHA_LINUX_ARM64=$(shasum -a 256 bins/ninode-linux-arm64  | awk '{print $1}')
+          SHA_LINUX_X64=$(shasum -a 256 bins/ninode-linux-x64      | awk '{print $1}')
+
+          cat > tap/Formula/ninode.rb <<RUBY
+          class Ninode < Formula
+            desc "Terminal-based server monitoring built with React 19 and OpenTUI"
+            homepage "https://github.com/michaelsieminski/ninode"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-darwin-x64"
+                sha256 "${SHA_DARWIN_X64}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-linux-arm64"
+                sha256 "${SHA_LINUX_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-linux-x64"
+                sha256 "${SHA_LINUX_X64}"
+              end
+            end
+
+            def install
+              binary = Dir["ninode-*"].first
+              odie "no ninode binary found in download" if binary.nil?
+              bin.install binary => "ninode"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/ninode --version")
+            end
+          end
+          RUBY
+
+      - name: Commit and push
+        if: steps.gate.outputs.skip == 'false'
+        working-directory: tap
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet Formula/ninode.rb; then
+            echo "Formula already up to date"
+            exit 0
+          fi
+          git add Formula/ninode.rb
+          git commit -m "ninode ${TAG}"
+          git push

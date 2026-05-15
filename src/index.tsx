@@ -7,13 +7,45 @@ import Dashboard from "./components/dashboard/Dashboard";
 import ServerDetailView from "./components/detail/ServerDetailView";
 import { SSHManager } from "./services/ssh/SSHManager";
 import { DatabaseService } from "./services/storage/DatabaseService";
+import { DaemonService } from "./services/daemon/DaemonService";
 import { handleDaemonCommand, ensureDaemonRunning } from "./cli/daemon";
 
-// Check for daemon commands before starting TUI
+const VERSION = "0.1.0";
+
 const args = process.argv.slice(2);
+
+if (args[0] === "--version" || args[0] === "-v") {
+	console.log(`ninode ${VERSION}`);
+	process.exit(0);
+}
+
+if (args[0] === "--help" || args[0] === "-h") {
+	console.log(`
+ninode ${VERSION} - Terminal-based server monitoring
+
+Usage:
+  ninode                    Launch the TUI
+  ninode daemon start       Start background metrics daemon
+  ninode daemon stop        Stop background metrics daemon
+  ninode daemon status      Show daemon status
+  ninode daemon logs        Tail daemon logs
+  ninode --version          Print version
+  ninode --help             Show this help
+`);
+	process.exit(0);
+}
+
 if (args[0] === "daemon") {
-	const exitCode = await handleDaemonCommand(args.slice(1));
-	process.exit(exitCode);
+	const sub = args[1];
+
+	// Internal: re-exec entry point as the daemon process itself
+	if (sub === "__run") {
+		await DaemonService.start();
+		await new Promise(() => {});
+	} else {
+		const exitCode = await handleDaemonCommand(args.slice(1));
+		process.exit(exitCode);
+	}
 }
 
 // Auto-start daemon if not already running

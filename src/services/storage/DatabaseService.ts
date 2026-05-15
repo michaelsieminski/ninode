@@ -1,14 +1,9 @@
 import { Database } from "bun:sqlite";
 import { Entry } from "@napi-rs/keyring";
-import { join, dirname } from "path";
+import { dirname } from "path";
 import { mkdirSync, existsSync } from "fs";
-import { fileURLToPath } from "url";
 import type { ServerConfig, ServerMetrics } from "../../types";
-
-// Get project root directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const PROJECT_ROOT = join(__dirname, "..", "..", "..");
+import { PATHS } from "../../utils/paths";
 
 export interface MetricsDataPoint {
 	timestamp: number;
@@ -44,8 +39,8 @@ class DatabaseServiceClass {
 	private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 	constructor() {
-		this.dataDir = join(PROJECT_ROOT, "db");
-		this.dbPath = join(this.dataDir, "ninode.db");
+		this.dbPath = PATHS.database();
+		this.dataDir = dirname(this.dbPath);
 	}
 
 	async initialize(): Promise<void> {

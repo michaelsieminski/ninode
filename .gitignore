@@ -5,6 +5,7 @@ node_modules
 out
 dist
 *.tgz
+.*.bun-build
 
 # code coverage
 coverage
@@ -22,10 +23,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env.production.local
 .env.local
 
-# User configurations
+# User configurations (legacy — runtime state now lives in ~/.ninode)
 configs.json
-
-# Database
 /db
 
 # caches

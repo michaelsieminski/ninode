@@ -5,19 +5,15 @@ import {
 	writeFileSync,
 	unlinkSync,
 } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { dirname } from "path";
 import { DatabaseService } from "../storage/DatabaseService";
 import { SSHManager } from "../ssh/SSHManager";
 import { MetricsCollector } from "../data/MetricsCollector";
+import { PATHS } from "../../utils/paths";
 import type { ServerConfig } from "../../types";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const PROJECT_ROOT = join(__dirname, "..", "..", "..");
-
-const PID_FILE = join(PROJECT_ROOT, "db", "daemon.pid");
-const LOG_FILE = join(PROJECT_ROOT, "db", "daemon.log");
+const PID_FILE = PATHS.daemonPid();
+const LOG_FILE = PATHS.daemonLog();
 const COLLECTION_INTERVAL_MS = 10000; // 10 seconds
 
 class DaemonServiceClass {

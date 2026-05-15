@@ -229,22 +229,48 @@ class SecureCredentialStore implements CredentialStore {
 ## Deployment & Distribution
 
 ### Build Process
-```typescript
-// bun.build.config.ts
-export default {
-  entrypoints: ["src/index.tsx"],
-  target: "bun",
-  minify: true,
-  external: ["@opentui/core", "@opentui/react"],
-  outdir: "dist"
-};
+
+Ninode is shipped as a single self-contained executable produced by
+`bun build --compile`. The Bun runtime and OpenTUI's native library
+(`libopentui.{dylib,so}`, loaded via `import("...", { with: { type: "file" } })`)
+are embedded into the binary — no Bun/Node install required on the user's machine.
+
+```bash
+bun run build                  # current platform → dist/ninode
+bun run build:darwin-arm64     # cross-targeted builds
+bun run build:darwin-x64
+bun run build:linux-x64
+bun run build:linux-arm64
 ```
 
+Per-platform binaries are produced by `.github/workflows/release.yml` on
+matching matrix runners (avoids cross-compile issues with OpenTUI's native
+optional-deps, which are resolved at runtime via
+`@opentui/core-${process.platform}-${process.arch}`).
+
+### Runtime State Location
+
+All mutable state lives outside the binary:
+
+- macOS: `~/Library/Application Support/ninode/`
+- Linux: `$XDG_DATA_HOME/ninode/` (default `~/.local/share/ninode/`)
+- Override: `NINODE_DATA_DIR=/path`
+
+Contents: `ninode.db` (SQLite), `daemon.pid`, `daemon.log`. Passwords stay in
+the OS keychain via `@napi-rs/keyring`.
+
+### Daemon Re-exec
+
+The background metrics daemon is the same binary, re-spawned as
+`<self> daemon __run` via `process.execPath`. This works identically in dev
+(`bun run src/index.tsx`) and in the compiled binary — the entry point detects
+which mode it's in by inspecting `process.argv[1]`.
+
 ### Distribution Strategy
-- **Single Binary**: Bundle application with Bun
-- **Package Managers**: NPM, Homebrew, AUR
-- **Installation Scripts**: Automated setup and configuration
-- **Updates**: Self-updating mechanism
+- **Single Binary** via `bun build --compile` — Bun + OpenTUI native lib embedded
+- **GitHub Releases** with per-platform assets + SHA256SUMS
+- **`install.sh`** — `curl | sh` that picks the right asset for the host
+- Future: Homebrew tap, AUR, self-update check
 
 ## Monitoring & Observability
 
