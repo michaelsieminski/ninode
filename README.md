@@ -9,10 +9,12 @@ Ninode is a modern, lightweight terminal user interface (TUI) for monitoring and
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew install michaelsieminski/tap/ninode
+brew tap michaelsieminski/tap
+brew install ninode
 ```
 
-Brew handles updates: `brew upgrade ninode`.
+After the one-time `tap`, future installs and upgrades use the short name:
+`brew upgrade ninode`.
 
 ### Quick install (macOS / Linux)
 
