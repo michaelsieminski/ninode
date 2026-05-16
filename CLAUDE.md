@@ -1,11 +1,8 @@
-## Project Documentation
-**Always reference project documentation before implementing:**
-- **Requirements:** `/docs/requirements.md` - Functional and non-functional requirements
-- **Architecture:** `/docs/technical-architecture.md` - Technical specifications and system design
-- **Tasks:** `/docs/tasks/` - Individual implementation tasks organized by priority
-
 # OpenTUI Documentation
 Please always refer to the [OpenTUI](https://github.com/sst/opentui/blob/main/packages/core/docs/development.md) and [OpenTUI React](https://github.com/sst/opentui/tree/main/packages/react) Documentations for detailed information on using the TUI framework effectively.
+
+## Developmemnt Guidelines
+- Never run the dev server as it probably is already running in another terminal
 
 ## Code Style & Guidelines
 - **Stack:** Bun + React 19 + @opentui/react (TUI).
@@ -152,10 +149,3 @@ Please always refer to the [OpenTUI](https://github.com/sst/opentui/blob/main/pa
 6. **Layering:** Use darker backgrounds for lower layers, lighter for higher layers
 7. **Selection:** Always make selected states obvious with background and text color changes
 8. **Errors:** Always use dark backgrounds with colored text, never bright backgrounds
-
-## Implementation Guidelines
-- **Task Execution:** Work on tasks from `/docs/tasks/` in priority order
-- **Task Completion:** When a task is completed, move its MD file to `/docs/tasks/done/` to track progress
-- **Architecture Compliance:** Follow the technical architecture document
-- **Requirements Validation:** Ensure implementation meets requirements
-- Never run the dev server as it probably is already running in another terminal
