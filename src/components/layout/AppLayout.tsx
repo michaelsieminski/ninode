@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useKeyboard } from "@opentui/react";
 import type { NavigationSection } from "../../types";
 import type { SSHManager } from "../../services/ssh/SSHManager";
@@ -20,8 +20,14 @@ export default function AppLayout({
 	disableKeyboardNavigation = false,
 }: AppLayoutProps) {
 	const { breakpoints, sidebarWidth } = useResponsive();
+	const [sidebarHidden, setSidebarHidden] = useState(false);
 
 	useKeyboard((key) => {
+		if (key.ctrl && key.name === "b") {
+			setSidebarHidden((prev) => !prev);
+			return;
+		}
+
 		if (disableKeyboardNavigation) return;
 
 		if (key.name === "1") {
@@ -29,9 +35,11 @@ export default function AppLayout({
 		}
 	});
 
+	const showSidebar = !breakpoints.isNarrow && !sidebarHidden;
+
 	return (
 		<box flexDirection="row" height="100%">
-			{!breakpoints.isNarrow && (
+			{showSidebar && (
 				<Sidebar
 					currentSection={currentSection}
 					onSectionChange={onSectionChange}
@@ -41,10 +49,18 @@ export default function AppLayout({
 			)}
 			<box
 				flexGrow={1}
+				flexDirection="column"
 				paddingLeft={breakpoints.isNarrow ? 1 : 2}
 				paddingRight={breakpoints.isNarrow ? 1 : 2}
 			>
-				{children}
+				<box flexGrow={1}>{children}</box>
+				{!showSidebar && !breakpoints.isNarrow && (
+					<box flexDirection="row" paddingTop={1}>
+						<text fg="#FFFFFF">^B</text>
+						<text> </text>
+						<text fg="#6B6B6B">show sidebar</text>
+					</box>
+				)}
 			</box>
 		</box>
 	);

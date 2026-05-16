@@ -26,7 +26,7 @@ export default function Sidebar({
 			padding={1}
 		>
 			{!collapsed && <ascii-font font="tiny" text="ninode" marginBottom={2} />}
-			<box flexDirection="column" width="100%" gap={1}>
+			<box flexDirection="column" width="100%" gap={1} flexGrow={1}>
 				{sections.map((section) => (
 					<box
 						key={section.key}
@@ -44,6 +44,18 @@ export default function Sidebar({
 					</box>
 				))}
 			</box>
+			{!collapsed && (
+				<box
+					flexDirection="row"
+					width="100%"
+					justifyContent="center"
+					paddingTop={1}
+				>
+					<text fg="#FFFFFF">^B</text>
+					<text> </text>
+					<text fg="#6B6B6B">hide</text>
+				</box>
+			)}
 		</box>
 	);
 }
