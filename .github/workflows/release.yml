@@ -22,11 +22,11 @@ jobs:
       matrix:
         include:
           - target: darwin-arm64
-            runner: macos-14
+            runner: macos-latest
             script: build:darwin-arm64
             artifact: dist/ninode-darwin-arm64
           - target: darwin-x64
-            runner: macos-13
+            runner: macos-latest
             script: build:darwin-x64
             artifact: dist/ninode-darwin-x64
           - target: linux-x64
