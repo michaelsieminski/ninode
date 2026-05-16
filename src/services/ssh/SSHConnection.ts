@@ -24,6 +24,11 @@ export class SSHConnection {
 				host: config.host,
 				port: config.port,
 				username: config.username,
+				// Fail fast on dead hosts instead of hanging on the TCP SYN.
+				readyTimeout: 5000,
+				// Detect half-open connections (VM powered off mid-session) within ~20s.
+				keepaliveInterval: 10000,
+				keepaliveCountMax: 2,
 			};
 
 			if (config.authMethod === "password" && config.password) {
@@ -32,14 +37,31 @@ export class SSHConnection {
 				connectConfig.privateKey = readFileSync(resolveKeyPath(config.keyPath));
 			}
 
+			let settled = false;
+			const settle = (fn: () => void) => {
+				if (settled) return;
+				settled = true;
+				fn();
+			};
+
 			this.client.on("ready", () => {
 				this.connected = true;
-				resolve();
+				settle(resolve);
 			});
 
 			this.client.on("error", (err) => {
 				this.connected = false;
-				reject(err);
+				settle(() => reject(err));
+			});
+
+			// Without these, a TCP RST or VM shutdown can leave `connected` true
+			// until the next exec fails, masking the real state from the UI.
+			this.client.on("close", () => {
+				this.connected = false;
+			});
+
+			this.client.on("end", () => {
+				this.connected = false;
 			});
 
 			this.client.connect(connectConfig);

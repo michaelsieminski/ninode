@@ -62,30 +62,9 @@ export default function Dashboard({
 		const connectAndCollect = async () => {
 			for (const server of servers) {
 				if (!mountedRef.current) return;
-
-				// Connect if needed
-				if (sshManager.getConnectionStatus(server.id) === "disconnected") {
-					try {
-						await sshManager.connect(server);
-					} catch (error) {
-						if (!mountedRef.current) return;
-						updateServerMetrics(server.id, {
-							serverId: server.id,
-							serverName: server.name,
-							cpu: null,
-							memory: null,
-							disks: [],
-							network: null,
-							lastUpdated: Date.now(),
-							error:
-								error instanceof Error ? error.message : "Connection failed",
-						});
-						continue;
-					}
-				}
-
-				// Collect metrics
-				if (!mountedRef.current) return;
+				// collectMetricsForServer handles connect-or-reconnect via
+				// SSHManager.ensureConnected, so a single code path covers
+				// startup and ongoing polling.
 				await collectMetricsForServer(server);
 			}
 
@@ -177,9 +156,9 @@ export default function Dashboard({
 	};
 
 	const collectMetricsForServer = async (server: ServerConfig) => {
-		const connection = sshManager.getConnection(server.id);
+		const connection = await sshManager.ensureConnected(server);
 
-		if (!connection || !connection.isConnected()) {
+		if (!connection) {
 			updateServerMetrics(
 				server.id,
 				{

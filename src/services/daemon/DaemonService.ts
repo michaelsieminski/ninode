@@ -132,21 +132,15 @@ class DaemonServiceClass {
 
 	private async collectServerMetrics(server: ServerConfig): Promise<void> {
 		try {
-			// Get or create connection
-			let connection = this.sshManager.getConnection(server.id);
+			// ensureConnected throttles retries and TCP-probes the SSH port
+			// before attempting the handshake, so a host that's still down
+			// doesn't spin a full ssh2 connect on every tick.
+			const connection = await this.sshManager.ensureConnected(server);
 
-			if (!connection || !connection.isConnected()) {
-				try {
-					connection = await this.sshManager.connect(server);
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
-					this.log(`Failed to connect to ${server.name}: ${message}`);
-					return;
-				}
+			if (!connection) {
+				return;
 			}
 
-			// Collect metrics
 			const metrics = await this.metricsCollector.collectAllMetrics(
 				server.id,
 				server.name,

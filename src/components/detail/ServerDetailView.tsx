@@ -74,21 +74,27 @@ export default function ServerDetailView({
 		mountedRef.current = true;
 
 		const collectMetrics = async () => {
-			const connection = sshManager.getConnection(serverId);
+			// We need the full server config to reconnect, not just the id.
+			const server = await DatabaseService.getServer(serverId);
+			const connection = server
+				? await sshManager.ensureConnected(server)
+				: null;
 			setConnectionStatus(sshManager.getConnectionStatus(serverId));
 
-			if (!connection || !connection.isConnected()) {
-				setCurrentMetrics({
-					serverId,
-					serverName,
-					cpu: null,
-					memory: null,
-					disks: [],
-					network: null,
-					lastUpdated: Date.now(),
-					error: "Not connected",
-				});
-				setRefreshState("error");
+			if (!connection) {
+				if (mountedRef.current) {
+					setCurrentMetrics({
+						serverId,
+						serverName,
+						cpu: null,
+						memory: null,
+						disks: [],
+						network: null,
+						lastUpdated: Date.now(),
+						error: "Not connected",
+					});
+					setRefreshState("error");
+				}
 				return;
 			}
 
