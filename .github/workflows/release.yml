@@ -25,10 +25,6 @@ jobs:
             runner: macos-latest
             script: build:darwin-arm64
             artifact: dist/ninode-darwin-arm64
-          - target: darwin-x64
-            runner: macos-latest
-            script: build:darwin-x64
-            artifact: dist/ninode-darwin-x64
           - target: linux-x64
             runner: ubuntu-latest
             script: build:linux-x64
@@ -51,7 +47,6 @@ jobs:
         run: bun run ${{ matrix.script }}
 
       - name: Smoke test (host-arch only)
-        if: matrix.target == 'darwin-arm64' || matrix.target == 'linux-x64' || matrix.target == 'linux-arm64'
         run: ${{ matrix.artifact }} --version
 
       - uses: actions/upload-artifact@v4
@@ -142,7 +137,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.name }}
         run: |
           mkdir bins && cd bins
-          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+          for target in darwin-arm64 linux-arm64 linux-x64; do
             gh release download "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --pattern "ninode-${target}" \
@@ -157,7 +152,6 @@ jobs:
         run: |
           VERSION="${TAG#v}"
           SHA_DARWIN_ARM64=$(shasum -a 256 bins/ninode-darwin-arm64 | awk '{print $1}')
-          SHA_DARWIN_X64=$(shasum -a 256 bins/ninode-darwin-x64    | awk '{print $1}')
           SHA_LINUX_ARM64=$(shasum -a 256 bins/ninode-linux-arm64  | awk '{print $1}')
           SHA_LINUX_X64=$(shasum -a 256 bins/ninode-linux-x64      | awk '{print $1}')
 
@@ -168,14 +162,12 @@ jobs:
             version "${VERSION}"
             license "MIT"
 
+            depends_on arch: :arm64 if OS.mac?
+
             on_macos do
               on_arm do
                 url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-darwin-arm64"
                 sha256 "${SHA_DARWIN_ARM64}"
-              end
-              on_intel do
-                url "https://github.com/michaelsieminski/ninode/releases/download/v#{version}/ninode-darwin-x64"
-                sha256 "${SHA_DARWIN_X64}"
               end
             end
 

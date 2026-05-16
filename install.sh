@@ -23,6 +23,9 @@ detect_target() {
     x86_64|amd64)  arch="x64"   ;;
     *) err "unsupported architecture: $(uname -m)" ;;
   esac
+  if [ "$os" = "darwin" ] && [ "$arch" = "x64" ]; then
+    err "Intel Macs are not supported; build from source: https://github.com/${REPO}#build-from-source"
+  fi
   echo "${os}-${arch}"
 }
 
