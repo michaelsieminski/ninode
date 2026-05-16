@@ -1,6 +1,6 @@
 {
 	"name": "ninode",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Terminal-based server monitoring built with React 19 and OpenTUI",
 	"module": "src/index.tsx",
 	"type": "module",
