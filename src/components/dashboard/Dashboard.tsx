@@ -237,6 +237,17 @@ export default function Dashboard({
 	const handleAddServer = async (
 		config: ServerConfig,
 	): Promise<{ success: true } | { success: false; error: string }> => {
+		const duplicate = DatabaseService.findServerByHostPort(
+			config.host,
+			config.port,
+		);
+		if (duplicate) {
+			return {
+				success: false,
+				error: `Server "${duplicate.name}" already uses ${config.host}:${config.port}`,
+			};
+		}
+
 		try {
 			await sshManager.connect(config);
 		} catch (error) {
@@ -277,10 +288,10 @@ export default function Dashboard({
 		// Don't handle keys when modal is open
 		if (showAddModal) return;
 
-		if (key.name === "up") {
+		if (key.name === "up" || key.name === "k") {
 			setSelectedIndex((prev) => Math.max(0, prev - 1));
 			setDeleteConfirmId(null);
-		} else if (key.name === "down") {
+		} else if (key.name === "down" || key.name === "j") {
 			setSelectedIndex((prev) => Math.min(servers.length - 1, prev + 1));
 			setDeleteConfirmId(null);
 		} else if (key.name === "return") {

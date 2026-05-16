@@ -256,6 +256,21 @@ class DatabaseServiceClass {
 		};
 	}
 
+	findServerByHostPort(
+		host: string,
+		port: number,
+	): { id: string; name: string } | null {
+		if (!this.db) throw new Error("Database not initialized");
+
+		const row = this.db
+			.query<{ id: string; name: string }, [string, number]>(
+				"SELECT id, name FROM servers WHERE host = ? AND port = ?",
+			)
+			.get(host, port);
+
+		return row || null;
+	}
+
 	async getAllServers(): Promise<ServerConfig[]> {
 		if (!this.db) throw new Error("Database not initialized");
 

@@ -164,7 +164,7 @@ export default function ServerDetailView({
 	useKeyboard((key) => {
 		if (key.name === "escape" || key.name === "backspace") {
 			onBack();
-		} else if (key.name === "left") {
+		} else if (key.name === "left" || key.name === "h") {
 			const currentIdx = TIME_RANGES.findIndex((r) => r.key === timeRange);
 			if (currentIdx > 0) {
 				const prevRange = TIME_RANGES[currentIdx - 1];
@@ -172,7 +172,7 @@ export default function ServerDetailView({
 					setTimeRange(prevRange.key);
 				}
 			}
-		} else if (key.name === "right") {
+		} else if (key.name === "right" || key.name === "l") {
 			const currentIdx = TIME_RANGES.findIndex((r) => r.key === timeRange);
 			if (currentIdx < TIME_RANGES.length - 1) {
 				const nextRange = TIME_RANGES[currentIdx + 1];
