@@ -15,6 +15,7 @@
 		"build:darwin-x64": "bun build --compile --minify --sourcemap --target=bun-darwin-x64 src/index.tsx --outfile dist/ninode-darwin-x64",
 		"build:linux-x64": "bun build --compile --minify --sourcemap --target=bun-linux-x64 src/index.tsx --outfile dist/ninode-linux-x64",
 		"build:linux-arm64": "bun build --compile --minify --sourcemap --target=bun-linux-arm64 src/index.tsx --outfile dist/ninode-linux-arm64",
+		"release": "bun run scripts/release.ts",
 		"format": "biome format --write"
 	},
 	"dependencies": {

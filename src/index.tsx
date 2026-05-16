@@ -1,6 +1,7 @@
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { useState, useRef, useEffect } from "react";
+import pkg from "../package.json";
 import type { NavigationSection, ViewState } from "./types";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./components/dashboard/Dashboard";
@@ -10,7 +11,7 @@ import { DatabaseService } from "./services/storage/DatabaseService";
 import { DaemonService } from "./services/daemon/DaemonService";
 import { handleDaemonCommand, ensureDaemonRunning } from "./cli/daemon";
 
-const VERSION = "0.1.0";
+const VERSION = pkg.version;
 
 const args = process.argv.slice(2);
 
