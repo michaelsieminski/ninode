@@ -183,34 +183,36 @@ export default function ServerMetricsCard({
 		>
 			{/* Server header */}
 			<box flexDirection="row" justifyContent="space-between" marginBottom={1}>
-				<box flexDirection="row" gap={1} alignItems="center">
-					<text
-						attributes={isSelected ? 1 : 0}
-						fg={isSelected ? "#FFFFFF" : "#8B8B8B"}
-					>
-						{`${isSelected ? "> " : "  "}${metrics.serverName}`}
-					</text>
-					<text
-						fg={
-							refreshState === "success"
-								? "#66AA66"
-								: refreshState === "error"
-									? "#CC6666"
-									: "#343434"
-						}
-					>
-						●
-					</text>
-					<text fg={getStatusColor(connectionStatus)} attributes={2}>
-						{getStatusLabel(connectionStatus)}
-					</text>
-				</box>
+				<text
+					attributes={isSelected ? 1 : 0}
+					fg={isSelected ? "#9FBAFF" : "#8B8B8B"}
+				>
+					{`${isSelected ? "▎ " : "  "}${metrics.serverName}`}
+				</text>
 				{isDeleting ? (
 					<text fg="#CC6666">Delete? [y]es [n]o</text>
 				) : (
-					<text fg="#3D3D3D" attributes={2}>
-						{new Date(metrics.lastUpdated).toLocaleTimeString()}
-					</text>
+					<box flexDirection="row" gap={2} alignItems="center">
+						<box flexDirection="row" gap={1} alignItems="center">
+							<text
+								fg={
+									refreshState === "success"
+										? "#66AA66"
+										: refreshState === "error"
+											? "#CC6666"
+											: "#343434"
+								}
+							>
+								●
+							</text>
+							<text fg={getStatusColor(connectionStatus)} attributes={2}>
+								{getStatusLabel(connectionStatus)}
+							</text>
+						</box>
+						<text fg="#8B8B8B">
+							{new Date(metrics.lastUpdated).toLocaleTimeString()}
+						</text>
+					</box>
 				)}
 			</box>
 

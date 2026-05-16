@@ -339,10 +339,7 @@ export default function Dashboard({
 	if (isLoading && servers.length === 0) {
 		return (
 			<box flexDirection="column">
-				<text attributes={1}>Dashboard</text>
-				<box marginTop={2}>
-					<text fg="#5C5C5C">Loading servers...</text>
-				</box>
+				<text fg="#5C5C5C">Loading servers...</text>
 			</box>
 		);
 	}
@@ -350,8 +347,7 @@ export default function Dashboard({
 	if (servers.length === 0) {
 		return (
 			<box flexDirection="column">
-				<text attributes={1}>Dashboard</text>
-				<box marginTop={2} padding={2} backgroundColor="#0E0E0E">
+				<box padding={2} backgroundColor="#0E0E0E">
 					<text fg="#5C5C5C">No servers configured</text>
 				</box>
 				<box marginTop={1}>
@@ -364,21 +360,7 @@ export default function Dashboard({
 	return (
 		<box flexDirection="column">
 			<box
-				flexDirection="row"
-				justifyContent="space-between"
-				alignItems="center"
-			>
-				<text attributes={1}>
-					{breakpoints.isNarrow ? "Dash" : "Dashboard"}
-				</text>
-				<text fg="#3D3D3D" attributes={2}>
-					{`${connectedServers.length}/${servers.length} connected`}
-				</text>
-			</box>
-
-			<box
 				flexDirection={breakpoints.isNarrow ? "column" : "row"}
-				marginTop={1}
 				gap={breakpoints.isNarrow ? 0 : 4}
 				padding={1}
 				backgroundColor="#0A0A0A"

@@ -1,5 +1,6 @@
 import React from "react";
 import type { NavigationSection } from "../../types";
+import KeyboardHints from "../common/KeyboardHints";
 
 interface SidebarProps {
 	currentSection: NavigationSection;
@@ -25,24 +26,29 @@ export default function Sidebar({
 			backgroundColor="#0E0E0E"
 			padding={1}
 		>
-			{!collapsed && <ascii-font font="tiny" text="ninode" marginBottom={2} />}
 			<box flexDirection="column" width="100%" gap={1} flexGrow={1}>
-				{sections.map((section) => (
-					<box
-						key={section.key}
-						backgroundColor={
-							currentSection === section.key ? "#171717" : "#111111"
-						}
-						padding={collapsed ? 0 : 1}
-						onMouseDown={() => onSectionChange(section.key)}
-					>
-						<text fg={currentSection === section.key ? "#FFFFFF" : "#5C5C5C"}>
-							{collapsed
-								? `[${section.shortcut}]`
-								: `[${section.shortcut}] ${section.label}`}
-						</text>
-					</box>
-				))}
+				{sections.map((section) => {
+					const isActive = currentSection === section.key;
+					return (
+						<box
+							key={section.key}
+							backgroundColor={isActive ? "#171717" : "#111111"}
+							padding={collapsed ? 0 : 1}
+							flexDirection="row"
+							onMouseDown={() => onSectionChange(section.key)}
+						>
+							<text fg="#9FBAFF">{isActive ? "▎" : " "}</text>
+							<text
+								fg={isActive ? "#9FBAFF" : "#5C5C5C"}
+								attributes={isActive ? 1 : 0}
+							>
+								{collapsed
+									? `[${section.shortcut}]`
+									: `[${section.shortcut}] ${section.label}`}
+							</text>
+						</box>
+					);
+				})}
 			</box>
 			{!collapsed && (
 				<box
@@ -51,9 +57,7 @@ export default function Sidebar({
 					justifyContent="center"
 					paddingTop={1}
 				>
-					<text fg="#FFFFFF">^B</text>
-					<text> </text>
-					<text fg="#6B6B6B">hide</text>
+					<KeyboardHints hints={[{ key: "^b", label: "hide" }]} />
 				</box>
 			)}
 		</box>

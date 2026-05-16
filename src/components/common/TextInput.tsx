@@ -71,7 +71,7 @@ export default function TextInput({
 
 	return (
 		<box flexDirection="row" gap={1}>
-			<text fg="#5C5C5C" attributes={focused ? 1 : 0}>
+			<text fg={focused ? "#9FBAFF" : "#5C5C5C"} attributes={focused ? 1 : 0}>
 				{label}:
 			</text>
 			<text fg={focused ? "#FFFFFF" : "#8B8B8B"}>

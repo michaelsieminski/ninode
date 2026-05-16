@@ -47,7 +47,7 @@ export default function SelectInput({
 					return (
 						<text
 							key={option.value}
-							fg={isSelected ? (focused ? "#FFFFFF" : "#8B8B8B") : "#3D3D3D"}
+							fg={isSelected ? (focused ? "#9FBAFF" : "#8B8B8B") : "#3D3D3D"}
 							attributes={isSelected ? 1 : 0}
 						>
 							{isSelected ? `[${option.label}]` : option.label}

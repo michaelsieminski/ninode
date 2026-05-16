@@ -42,10 +42,29 @@ Please always refer to the [OpenTUI](https://github.com/sst/opentui/blob/main/pa
 - Use `#171717` to highlight selected/active items
 - Always pair error backgrounds with appropriate error text colors
 
+### Brand / Primary Color
+
+- `#9FBAFF` - Soft blue, ninode's brand primary. Used as the accent that signals
+  interactive or branded content across the app.
+
+**Where to use it:**
+- Selected/active navigation items (sidebar entry, selected server card title)
+- Focused action buttons (`[Save]`, `[Cancel]`, `[Connect]`, etc.)
+- Keyboard shortcut keys in hint bars (`^B`, `ENTER`, `a`, `d`, ...)
+- Focused input labels (the `Label:` part, not the value)
+- Page titles (`Dashboard`, server name in detail view, `Add Server`)
+- Sidebar selection indicator (`▎` bar)
+
+**Where NOT to use it:**
+- Long-form body text or data values — keep those grayscale for readability
+- Status indicators — those keep their semantic colors (green/amber/red)
+- Anything inside backgrounds that would clash (avoid on `#260101` error bg)
+
 ### Foreground Colors
 
 **Grayscale Hierarchy (Primary to Subtle):**
-- `#FFFFFF` - White for selected/active text, focused elements, primary labels
+- `#FFFFFF` - White, reserved for high-contrast values where the brand color would
+  reduce legibility (e.g. focused input text). Prefer `#9FBAFF` for active state.
 - `#8B8B8B` - Medium gray for normal text, data values, secondary information
 - `#6B6B6B` - Darker gray for tertiary text, detailed metrics
 - `#5C5C5C` - Even darker gray for labels, section headers, loading states
@@ -53,7 +72,8 @@ Please always refer to the [OpenTUI](https://github.com/sst/opentui/blob/main/pa
 - `#343434` - Nearly invisible gray for idle indicators
 
 **Usage Rules:**
-- Use `#FFFFFF` only for active/selected states or primary headings
+- Use `#9FBAFF` (brand) for active/selected states and primary headings; reserve
+  `#FFFFFF` only for value text where contrast matters more than brand presence
 - Use `#8B8B8B` for regular content and data display
 - Use `#5C5C5C` - `#6B6B6B` range for labels and secondary info
 - Use `#3D3D3D` - `#343434` for very subtle hints or inactive states
@@ -104,24 +124,28 @@ Please always refer to the [OpenTUI](https://github.com/sst/opentui/blob/main/pa
 
 **Selection/Focus States:**
 - Background: `#171717` (or `#0E0E0E` for less emphasis)
-- Text: `#FFFFFF` with `attributes={1}` (bold)
-- Indicator: Add `"> "` prefix or change text brightness
+- Text: `#9FBAFF` (brand) with `attributes={1}` (bold)
+- Indicator: Add `"▎ "` (brand-colored bar) or `"> "` prefix
 
 **Navigation/Sidebar:**
-- Selected: background `#171717`, text `#FFFFFF`
+- Selected: background `#171717`, text `#9FBAFF` bold, leading `▎` accent in `#9FBAFF`
 - Unselected: background `#111111`, text `#5C5C5C`
 - Container: background `#0E0E0E`
 
 **Cards/Panels:**
-- Selected: background `#171717`, title `#FFFFFF` bold
+- Selected: background `#171717`, title `#9FBAFF` bold, leading `▎ ` accent
 - Unselected: background `#0E0E0E`, title `#8B8B8B` normal
 - Labels: `#5C5C5C`
 - Values: `#8B8B8B` or `#6B6B6B`
 
 **Buttons/Actions:**
-- Focused: text `#FFFFFF`
+- Focused: text `#9FBAFF` (brand)
 - Unfocused: text `#8B8B8B`
 - Use bracket notation: `[Connect]`, `[Disconnect]`
+
+**Keyboard Hints:**
+- Key: `#9FBAFF` (brand)
+- Label: `#6B6B6B`
 
 **Progress Bars:**
 - Low usage (0-69%): `#66AA66` (green)

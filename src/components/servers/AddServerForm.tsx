@@ -178,7 +178,7 @@ export default function AddServerForm({
 			backgroundColor="#0E0E0E"
 			width={formWidth}
 		>
-			<text attributes={1} fg="#FFFFFF">
+			<text attributes={1} fg="#9FBAFF">
 				{breakpoints.isNarrow ? "Add Server" : "Add Server"}
 			</text>
 			<text fg="#5C5C5C" attributes={2}>
@@ -248,7 +248,7 @@ export default function AddServerForm({
 					<text
 						fg={
 							focusedField === "actions" && focusedAction === "save"
-								? "#FFFFFF"
+								? "#9FBAFF"
 								: "#8B8B8B"
 						}
 						attributes={
@@ -260,7 +260,7 @@ export default function AddServerForm({
 					<text
 						fg={
 							focusedField === "actions" && focusedAction === "cancel"
-								? "#FFFFFF"
+								? "#9FBAFF"
 								: "#8B8B8B"
 						}
 						attributes={

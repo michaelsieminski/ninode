@@ -373,10 +373,9 @@ export default function ServerDetailView({
 				justifyContent="space-between"
 				alignItems="center"
 			>
-				<box flexDirection="row" gap={2}>
-					<text fg="#5C5C5C">[ESC] Back</text>
-					<text attributes={1}>{serverName}</text>
-				</box>
+				<text attributes={1} fg="#9FBAFF">
+					{serverName}
+				</text>
 				<box flexDirection="row" gap={2}>
 					<text fg={getRefreshIndicatorColor()}>
 						{refreshState === "idle" ? " " : "\u25CF"}
@@ -385,9 +384,7 @@ export default function ServerDetailView({
 						{connectionStatus.toUpperCase()}
 					</text>
 					{currentMetrics && (
-						<text fg="#3D3D3D" attributes={2}>
-							{formatTime(currentMetrics.lastUpdated)}
-						</text>
+						<text fg="#8B8B8B">{formatTime(currentMetrics.lastUpdated)}</text>
 					)}
 				</box>
 			</box>

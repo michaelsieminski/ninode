@@ -4,6 +4,7 @@ import type { NavigationSection } from "../../types";
 import type { SSHManager } from "../../services/ssh/SSHManager";
 import { useResponsive } from "../../hooks/useResponsive";
 import Sidebar from "./Sidebar";
+import KeyboardHints from "../common/KeyboardHints";
 
 interface AppLayoutProps {
 	children: React.ReactNode;
@@ -55,10 +56,8 @@ export default function AppLayout({
 			>
 				<box flexGrow={1}>{children}</box>
 				{!showSidebar && !breakpoints.isNarrow && (
-					<box flexDirection="row" paddingTop={1}>
-						<text fg="#FFFFFF">^B</text>
-						<text> </text>
-						<text fg="#6B6B6B">show sidebar</text>
+					<box paddingTop={1}>
+						<KeyboardHints hints={[{ key: "^b", label: "show sidebar" }]} />
 					</box>
 				)}
 			</box>

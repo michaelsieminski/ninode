@@ -12,8 +12,8 @@ export default function KeyboardHints({ hints }: KeyboardHintsProps) {
 		<box flexDirection="row" gap={2}>
 			{hints.map((hint, index) => (
 				<box key={index} flexDirection="row" gap={1}>
-					<text fg="#FFFFFF">{hint.key}</text>
-					<text fg="#6B6B6B">{hint.label}</text>
+					<text fg="#9FBAFF">{hint.key.toLowerCase()}</text>
+					<text fg="#6B6B6B">{hint.label.toLowerCase()}</text>
 				</box>
 			))}
 		</box>

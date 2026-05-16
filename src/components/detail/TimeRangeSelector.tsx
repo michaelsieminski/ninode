@@ -44,7 +44,7 @@ export default function TimeRangeSelector({
 						onMouseDown={() => onRangeChange(range.key)}
 					>
 						<text
-							fg={isSelected ? "#FFFFFF" : "#5C5C5C"}
+							fg={isSelected ? "#9FBAFF" : "#5C5C5C"}
 							attributes={isSelected && focused ? 1 : 0}
 						>
 							{range.label}
